@@ -1,4 +1,8 @@
-package com.example.genesis.repository;
+package com.example.genesis.storage;
 
-public class UserRepository {
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface UserRepository extends JpaRepository<UserEntity, Long> {
 }

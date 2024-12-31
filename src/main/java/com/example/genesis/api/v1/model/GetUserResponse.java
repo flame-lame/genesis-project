@@ -1,8 +1,9 @@
-package com.example.genesis.controller.model;
+package com.example.genesis.api.v1.model;
 
-public record GetUserResponse (
+public record GetUserResponse(
         Long id,
         String name,
         String surname
-) {}
+) {
+}
 

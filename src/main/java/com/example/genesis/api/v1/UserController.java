@@ -1,39 +1,31 @@
-package com.example.genesis.controller;
+package com.example.genesis.api.v1;
 
-import com.example.genesis.controller.model.CreateUserRequest;
-import com.example.genesis.controller.model.GetUserDetailResponse;
-import com.example.genesis.controller.model.GetUserResponse;
-import com.example.genesis.controller.model.UpdateUserRequest;
-import com.example.genesis.service.*;
+import com.example.genesis.api.v1.model.CreateUserRequest;
+import com.example.genesis.api.v1.model.GetUserDetailResponse;
+import com.example.genesis.api.v1.model.GetUserResponse;
+import com.example.genesis.api.v1.model.UpdateUserRequest;
+import com.example.genesis.service.DuplicatePersonIdException;
+import com.example.genesis.service.UserNotFoundException;
+import com.example.genesis.service.UserService;
 import com.example.genesis.storage.UserEntity;
 import jakarta.validation.Valid;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
+@RequiredArgsConstructor
 @RestController
 public final class UserController {
     private final UserService userService;
-    private final PersonIdValidator personIdValidator;
-
-    @Autowired
-    public UserController(UserService userService, PersonIdValidator personIdValidator) {
-        this.userService = userService;
-        this.personIdValidator = personIdValidator;
-    }
-
 
     @PostMapping("/api/v1/users")
     public ResponseEntity<Long> createUser(@RequestBody @Valid CreateUserRequest createUserRequest) {
         try {
-            personIdValidator.validateId(createUserRequest.personId());
-
             UserEntity userEntity = new UserEntity();
             userEntity.setName(createUserRequest.name());
             userEntity.setSurname(createUserRequest.surname());
@@ -45,23 +37,19 @@ public final class UserController {
             return new ResponseEntity<>(userId, HttpStatus.CREATED);
         } catch (DuplicatePersonIdException e) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Person with this person ID already exists");
-        } catch (InvalidPersonIdException e) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Invalid person ID");
         }
     }
 
     @GetMapping("/api/v1/users")
     public ResponseEntity<List<GetUserResponse>> getAllUsers() {
         List<UserEntity> allUsers = userService.findAllUsers();
-        List<GetUserResponse> userResponses = new ArrayList<>();
 
-        for (UserEntity user : allUsers) {
-            userResponses.add(new GetUserResponse(
-                    user.getId(),
-                    user.getName(),
-                    user.getSurname()
-            ));
-        }
+        List<GetUserResponse> userResponses = allUsers.stream()
+                .map(user -> new GetUserResponse(
+                        user.getId(),
+                        user.getName(),
+                        user.getSurname()
+                )).toList();
 
         return ResponseEntity.ok(userResponses);
     }
@@ -69,17 +57,14 @@ public final class UserController {
     @GetMapping(value = "/api/v1/users", params = "detail=true")
     public ResponseEntity<List<GetUserDetailResponse>> getAllUserDetails(@RequestParam(value = "detail", required = false) Boolean ignoredDetail) {
         List<UserEntity> allUsers = userService.findAllUsers();
-        List<GetUserDetailResponse> userResponses = new ArrayList<>();
-
-        for (UserEntity user : allUsers) {
-            userResponses.add(new GetUserDetailResponse(
-                    user.getId(),
-                    user.getName(),
-                    user.getSurname(),
-                    user.getPersonId(),
-                    user.getUuid()
-            ));
-        }
+        List<GetUserDetailResponse> userResponses = allUsers.stream()
+                .map(user -> new GetUserDetailResponse(
+                        user.getId(),
+                        user.getName(),
+                        user.getSurname(),
+                        user.getPersonId(),
+                        user.getUuid()
+                )).toList();
 
         return ResponseEntity.ok(userResponses);
     }
